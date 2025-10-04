@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create Account - Atoz Mobile</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore-compat.js"></script>
+</head>
+<body class="bg-gray-50 dark:bg-gray-900">
+
+    <div class="flex flex-col items-center justify-center px-6 py-8 mx-auto h-screen lg:py-0">
+        <a href="#" class="flex items-center mb-6 text-2xl font-bold text-amber-500">
+            Atoz Mobile
+        </a>
+        <div class="w-full bg-white rounded-lg shadow dark:border md:mt-0 sm:max-w-md xl:p-0 dark:bg-gray-800 dark:border-gray-700">
+            <div class="p-6 space-y-4 md:space-y-6 sm:p-8">
+                <h1 class="text-xl font-bold leading-tight tracking-tight text-gray-900 md:text-2xl dark:text-white">
+                    Create a new account
+                </h1>
+                <form id="signup-form" class="space-y-4 md:space-y-6" action="#">
+                    <div>
+                        <label for="name" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Your Name</label>
+                        <input type="text" name="name" id="name" class="bg-gray-50 border border-gray-300 text-gray-900 sm:text-sm rounded-lg focus:ring-amber-600 focus:border-amber-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white" placeholder="John Doe" required>
+                    </div>
+                    <div>
+                        <label for="email" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Your email</label>
+                        <input type="email" name="email" id="email" class="bg-gray-50 border border-gray-300 text-gray-900 sm:text-sm rounded-lg focus:ring-amber-600 focus:border-amber-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white" placeholder="name@company.com" required>
+                    </div>
+                     <div>
+                        <label for="mobile" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Mobile Number</label>
+                        <input type="tel" name="mobile" id="mobile" class="bg-gray-50 border border-gray-300 text-gray-900 sm:text-sm rounded-lg focus:ring-amber-600 focus:border-amber-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white" placeholder="98XXXXXXXX" required>
+                    </div>
+                    <div>
+                        <label for="password" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Password</label>
+                        <input type="password" name="password" id="password" placeholder="••••••••" class="bg-gray-50 border border-gray-300 text-gray-900 sm:text-sm rounded-lg focus:ring-amber-600 focus:border-amber-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white" required>
+                    </div>
+                    
+                    <button type="submit" class="w-full text-white bg-amber-500 hover:bg-amber-600 focus:ring-4 focus:outline-none focus:ring-amber-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-amber-600 dark:hover:bg-amber-700 dark:focus:ring-amber-800">Create account</button>
+                    
+                    <p id="error-message" class="text-sm font-light text-red-500 dark:text-red-400"></p>
+
+                    <p class="text-sm font-light text-gray-500 dark:text-gray-400">
+                        Already have an account? <a href="login.html" class="font-medium text-amber-600 hover:underline dark:text-amber-500">Login here</a>
+                    </p>
+                </form>
+            </div>
+        </div>
+    </div>
+
+<script>
+    // Paste your Firebase config here
+    const firebaseConfig = {
+      apiKey: "AIzaSyBIwo7phmACkms_fjwfhEVJNgx5eiEQWBE",
+      authDomain: "atozmobialstores.firebaseapp.com",
+      projectId: "atozmobialstores",
+      storageBucket: "atozmobialstores.firebasestorage.app",
+      messagingSenderId: "879111411317",
+      appId: "1:879111411317:web:589d4b750cc113572a8a3c",
+      measurementId: "G-HDVSY5KYBK"
+    };
+
+    // Initialize Firebase
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.firestore();
+
+    const signupForm = document.getElementById('signup-form');
+    const errorMessage = document.getElementById('error-message');
+
+    signupForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+
+        const name = signupForm.name.value;
+        const email = signupForm.email.value;
+        const mobile = signupForm.mobile.value;
+        const password = signupForm.password.value;
+        
+        errorMessage.textContent = ''; // Clear previous errors
+
+        // Create user with email and password
+        auth.createUserWithEmailAndPassword(email, password)
+            .then((userCredential) => {
+                const user = userCredential.user;
+                
+                // Now save additional user info to Firestore
+                return db.collection('users').doc(user.uid).set({
+                    name: name,
+                    email: email,
+                    mobile: mobile,
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+            })
+            .then(() => {
+                alert('Account created successfully! Redirecting to login...');
+                window.location.href = 'login.html';
+            })
+            .catch((error) => {
+                console.error("Error creating account:", error);
+                errorMessage.textContent = error.message;
+            });
+    });
+</script>
+
+</body>
+</html>

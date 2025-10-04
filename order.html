@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Atoz Mobile - My Orders</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore-compat.js"></script>
+    <style>
+        body { padding-bottom: 80px; }
+        .bottom-nav { box-shadow: 0 -2px 10px rgba(0,0,0,0.1); }
+        .nav-item.active i, .nav-item.active span { color: #f59e0b; }
+        .tab-active {
+            border-bottom-color: #f59e0b;
+            color: #f59e0b;
+        }
+        .order-details {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.5s ease-in-out;
+        }
+        .order-details.expanded {
+            max-height: 500px; /* Adjust as needed */
+        }
+        /* Progress Tracker Styles */
+        .progress-step {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            position: relative;
+            flex-grow: 1;
+        }
+        .progress-step:not(:last-child)::after {
+            content: '';
+            position: absolute;
+            top: 12px;
+            left: 50%;
+            height: 2px;
+            width: 100%;
+            background-color: #e5e7eb; /* gray-200 */
+            z-index: -1;
+        }
+        .progress-circle {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background-color: #e5e7eb; /* gray-200 */
+            border: 2px solid #e5e7eb;
+            transition: all 0.3s ease;
+        }
+        .progress-step.active .progress-circle {
+            background-color: #10b981; /* emerald-500 */
+            border-color: #10b981;
+        }
+        .progress-step.active:not(:last-child)::after {
+             background-color: #10b981;
+        }
+        .progress-step.active .progress-label {
+            color: #1f2937; /* gray-800 */
+        }
+    </style>
+</head>
+<body class="bg-gray-100 dark:bg-gray-900">
+
+    <!-- Header -->
+    <header class="sticky top-0 z-40 bg-white dark:bg-gray-800 shadow-sm p-4">
+        <div class="container mx-auto flex items-center">
+            <h1 class="text-xl font-bold text-gray-800 dark:text-white">My Orders</h1>
+        </div>
+    </header>
+
+    <main class="container mx-auto">
+        <!-- Tabs -->
+        <div class="flex border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
+            <button id="activeTab" class="flex-1 py-3 text-center font-semibold text-gray-700 dark:text-gray-300 border-b-2 tab-active" onclick="showTab('active')">Active Orders</button>
+            <button id="historyTab" class="flex-1 py-3 text-center font-semibold text-gray-500 dark:text-gray-400 border-b-2 border-transparent" onclick="showTab('history')">Order History</button>
+        </div>
+
+        <!-- Orders Container -->
+        <div class="p-4">
+            <!-- Active Orders -->
+            <div id="active-orders-container">
+                <!-- Skeleton Loader -->
+                <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md mb-4 animate-pulse" _repeat="2">
+                    <div class="flex justify-between items-center">
+                        <div class="h-5 bg-gray-200 dark:bg-gray-700 rounded w-1/3"></div>
+                        <div class="h-4 bg-gray-200 dark:bg-gray-700 rounded w-1/4"></div>
+                    </div>
+                    <div class="h-6 bg-gray-200 dark:bg-gray-700 rounded w-1/2 mt-3"></div>
+                </div>
+            </div>
+
+            <!-- History Orders -->
+            <div id="history-orders-container" class="hidden">
+                <!-- Skeleton Loader (can be same) -->
+                 <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md mb-4 animate-pulse" _repeat="1">
+                    <div class="flex justify-between items-center">
+                        <div class="h-5 bg-gray-200 dark:bg-gray-700 rounded w-1/3"></div>
+                        <div class="h-4 bg-gray-200 dark:bg-gray-700 rounded w-1/4"></div>
+                    </div>
+                    <div class="h-6 bg-gray-200 dark:bg-gray-700 rounded w-1/2 mt-3"></div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Bottom Navigation -->
+    <nav class="fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-800 p-2 bottom-nav z-50">
+        <div class="flex justify-around">
+            <a href="index.html" class="nav-item flex flex-col items-center text-gray-500 dark:text-gray-400 w-1/4">
+                <i class="fas fa-home text-xl"></i>
+                <span class="text-xs">Home</span>
+            </a>
+            <a href="category.html" class="nav-item flex flex-col items-center text-gray-500 dark:text-gray-400 w-1/4">
+                <i class="fas fa-th-large text-xl"></i>
+                <span class="text-xs">Categories</span>
+            </a>
+            <a href="order.html" class="nav-item active flex flex-col items-center text-gray-500 dark:text-gray-400 w-1/4">
+                <i class="fas fa-box text-xl"></i>
+                <span class="text-xs">Orders</span>
+            </a>
+            <a href="profile.html" class="nav-item flex flex-col items-center text-gray-500 dark:text-gray-400 w-1/4">
+                <i class="fas fa-user text-xl"></i>
+                <span class="text-xs">Profile</span>
+            </a>
+        </div>
+    </nav>
+    
+    <div id="toast" class="toast fixed bottom-24 left-1/2 -translate-x-1/2 bg-gray-800 text-white px-4 py-2 rounded-lg shadow-lg opacity-0 transition-opacity duration-300 z-50"></div>
+
+
+<script>
+    // -------------------
+    //  SECURITY & CONFIG
+    // -------------------
+    document.addEventListener('contextmenu', event => event.preventDefault());
+    const firebaseConfig = {
+      apiKey: "AIzaSyBIwo7phmACkms_fjwfhEVJNgx5eiEQWBE",
+      authDomain: "atozmobialstores.firebaseapp.com",
+      projectId: "atozmobialstores",
+      storageBucket: "atozmobialstores.appspot.com",
+      messagingSenderId: "879111411317",
+      appId: "1:879111411317:web:589d4b750cc113572a8a3c",
+      measurementId: "G-HDVSY5KYBK"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.firestore();
+    let currentUser = null;
+    
+    // -------------------
+    // PAGE LOGIC
+    // -------------------
+    document.addEventListener('DOMContentLoaded', () => {
+        auth.onAuthStateChanged(user => {
+            if (user) {
+                currentUser = user;
+                fetchOrders();
+            } else {
+                window.location.replace('login.html');
+            }
+        });
+        
+        // Add event listener for expanding order details
+        document.body.addEventListener('click', function(event) {
+            const expandButton = event.target.closest('.expand-btn');
+            if (expandButton) {
+                const orderId = expandButton.dataset.orderId;
+                const detailsContainer = document.getElementById(`details-${orderId}`);
+                const isExpanded = detailsContainer.classList.toggle('expanded');
+                
+                // Lazy load items only on first expansion
+                if (isExpanded && !detailsContainer.dataset.loaded) {
+                    fetchOrderItems(orderId, detailsContainer);
+                    detailsContainer.dataset.loaded = 'true';
+                }
+            }
+        });
+    });
+
+    function showTab(tabName) {
+        const activeContainer = document.getElementById('active-orders-container');
+        const historyContainer = document.getElementById('history-orders-container');
+        const activeTab = document.getElementById('activeTab');
+        const historyTab = document.getElementById('historyTab');
+
+        if (tabName === 'active') {
+            activeContainer.classList.remove('hidden');
+            historyContainer.classList.add('hidden');
+            activeTab.classList.add('tab-active');
+            historyTab.classList.remove('tab-active');
+        } else {
+            activeContainer.classList.add('hidden');
+            historyContainer.classList.remove('hidden');
+            activeTab.classList.remove('tab-active');
+            historyTab.classList.add('tab-active');
+        }
+    }
+
+    // ==========================================================
+    //  FIXED FUNCTION - YAHAN BADLAAV KIYA GAYA HAI
+    // ==========================================================
+    async function fetchOrders() {
+        if (!currentUser) return;
+        try {
+            // Step 1: Query ko simple banayein (sirf user_id se filter karein, sort na karein)
+            // Isse composite index ki zaroorat nahi padegi.
+            const snapshot = await db.collection('orders')
+                .where('user_id', '==', currentUser.uid)
+                .get();
+
+            // Step 2: Saare orders ko ek temporary array mein daalein
+            const allUserOrders = [];
+            snapshot.forEach(doc => {
+                allUserOrders.push({ id: doc.id, ...doc.data() });
+            });
+
+            // Step 3: JavaScript ka istemal karke array ko date se sort karein (newest first)
+            allUserOrders.sort((a, b) => b.created_at.toMillis() - a.created_at.toMillis());
+
+            // Step 4: Ab sorted array se active aur history orders alag karein
+            const activeOrders = [];
+            const historyOrders = [];
+
+            allUserOrders.forEach(order => {
+                if (['Placed', 'Dispatched'].includes(order.status)) {
+                    activeOrders.push(order);
+                } else {
+                    historyOrders.push(order);
+                }
+            });
+            
+            // Step 5: Sorted lists ko screen par dikhayein
+            renderOrderList(activeOrders, 'active-orders-container');
+            renderOrderList(historyOrders, 'history-orders-container');
+
+        } catch (error) {
+            console.error("Error fetching orders: ", error);
+            document.getElementById('active-orders-container').innerHTML = `<p class="text-red-500">Could not load orders.</p>`;
+        }
+    }
+
+    function renderOrderList(orders, containerId) {
+        const container = document.getElementById(containerId);
+        if (orders.length === 0) {
+            container.innerHTML = `
+                <div class="text-center py-10">
+                    <i class="fas fa-box-open text-5xl text-gray-300 dark:text-gray-600"></i>
+                    <p class="mt-4 text-gray-500">No orders here.</p>
+                </div>`;
+            return;
+        }
+
+        let html = '';
+        orders.forEach(order => {
+            const orderDate = order.created_at ? order.created_at.toDate().toLocaleDateString('en-GB') : 'N/A';
+            const placedActive = ['Placed', 'Dispatched', 'Delivered'].includes(order.status) ? 'active' : '';
+            const dispatchedActive = ['Dispatched', 'Delivered'].includes(order.status) ? 'active' : '';
+            const deliveredActive = ['Delivered'].includes(order.status) ? 'active' : '';
+
+            html += `
+                <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md mb-4">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <p class="text-sm font-bold text-gray-800 dark:text-white">Order #${order.id.substring(0, 6)}</p>
+                            <p class="text-xs text-gray-500 dark:text-gray-400">Placed on: ${orderDate}</p>
+                        </div>
+                        <span class="text-sm font-semibold px-2 py-1 rounded-full ${order.status === 'Delivered' ? 'bg-green-100 text-green-800' : 'bg-amber-100 text-amber-800'}">${order.status}</span>
+                    </div>
+                    
+                    <div class="mt-4">
+                        <p class="text-gray-600 dark:text-gray-300">Total: <span class="font-bold text-lg text-amber-600">रू ${order.total_amount.toLocaleString()}</span></p>
+                    </div>
+
+                    <!-- Progress Tracker -->
+                    <div class="flex justify-between items-start mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+                        <div class="progress-step ${placedActive}">
+                            <div class="progress-circle"><i class="fas fa-check text-white text-xs"></i></div>
+                            <p class="progress-label text-xs text-center mt-1 text-gray-500">Placed</p>
+                        </div>
+                        <div class="progress-step ${dispatchedActive}">
+                            <div class="progress-circle"><i class="fas fa-check text-white text-xs"></i></div>
+                            <p class="progress-label text-xs text-center mt-1 text-gray-500">Dispatched</p>
+                        </div>
+                        <div class="progress-step ${deliveredActive}">
+                            <div class="progress-circle"><i class="fas fa-check text-white text-xs"></i></div>
+                            <p class="progress-label text-xs text-center mt-1 text-gray-500">Delivered</p>
+                        </div>
+                    </div>
+
+                    <button class="expand-btn w-full text-center mt-4 text-sm font-medium text-amber-600" data-order-id="${order.id}">
+                        View Details <i class="fas fa-chevron-down ml-1"></i>
+                    </button>
+                    <div id="details-${order.id}" class="order-details mt-4 border-t border-gray-200 dark:border-gray-700 pt-4">
+                        <div class="text-center py-2"><i class="fas fa-spinner fa-spin text-gray-400"></i></div>
+                    </div>
+                </div>
+            `;
+        });
+        container.innerHTML = html;
+    }
+    
+    async function fetchOrderItems(orderId, container) {
+        try {
+            const snapshot = await db.collection('order_items').where('order_id', '==', orderId).get();
+            if (snapshot.empty) {
+                container.innerHTML = '<p class="text-sm text-gray-500">No items found for this order.</p>';
+                return;
+            }
+            
+            let itemsHtml = '<div class="space-y-3">';
+            snapshot.forEach(doc => {
+                const item = doc.data();
+                itemsHtml += `
+                    <div class="flex items-center text-sm">
+                        <img src="${item.product_image}" class="w-12 h-12 object-cover rounded-md mr-3">
+                        <div class="flex-grow">
+                            <p class="font-semibold text-gray-800 dark:text-white">${item.product_name}</p>
+                            <p class="text-gray-500 dark:text-gray-400">Qty: ${item.quantity}</p>
+                        </div>
+                        <p class="font-semibold text-gray-700 dark:text-gray-300">रू ${(item.price * item.quantity).toLocaleString()}</p>
+                    </div>
+                `;
+            });
+            itemsHtml += '</div>';
+            container.innerHTML = itemsHtml;
+        } catch (error) {
+            console.error("Error fetching order items:", error);
+            container.innerHTML = '<p class="text-sm text-red-500">Could not load items.</p>';
+        }
+    }
+</script>
+</body>
+</html>

@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Atoz Mobile - My Profile</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore-compat.js"></script>
+    <style>
+        body { padding-bottom: 80px; }
+        .bottom-nav { box-shadow: 0 -2px 10px rgba(0,0,0,0.1); }
+        .nav-item.active i, .nav-item.active span { color: #f59e0b; }
+        .profile-stat-card {
+             background: linear-gradient(135deg, #fef3c7, #fed7aa); /* amber-100 to orange-200 */
+        }
+    </style>
+</head>
+<body class="bg-gray-100 dark:bg-gray-900">
+
+    <!-- Header -->
+    <header class="bg-white dark:bg-gray-800 shadow-sm p-4">
+        <div class="container mx-auto text-center">
+            <h1 class="text-xl font-bold text-gray-800 dark:text-white">My Profile</h1>
+        </div>
+    </header>
+
+    <main class="container mx-auto p-4 space-y-6">
+        <!-- User Info Header -->
+        <div class="flex items-center space-x-4 bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md">
+            <div class="w-16 h-16 rounded-full bg-amber-500 flex items-center justify-center text-white text-3xl font-bold">
+                <span id="user-initial">A</span>
+            </div>
+            <div>
+                <h2 id="user-name-display" class="text-xl font-bold text-gray-900 dark:text-white">Loading...</h2>
+                <p id="user-email-display" class="text-sm text-gray-500 dark:text-gray-400">...</p>
+            </div>
+        </div>
+        
+        <!-- Stats -->
+        <div class="grid grid-cols-2 gap-4">
+            <div class="profile-stat-card text-gray-800 p-4 rounded-lg shadow">
+                <p class="text-sm font-medium">Total Purchases</p>
+                <p id="total-purchases" class="text-2xl font-bold">0</p>
+            </div>
+            <div class="profile-stat-card text-gray-800 p-4 rounded-lg shadow">
+                <p class="text-sm font-medium">Cash Points</p>
+                <p id="cash-points" class="text-2xl font-bold">0</p>
+            </div>
+        </div>
+
+        <!-- Edit Profile Form -->
+        <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md">
+            <h3 class="text-lg font-bold mb-4 text-gray-800 dark:text-white">Edit Information</h3>
+            <form id="profile-form" class="space-y-4">
+                <div>
+                    <label for="name" class="block mb-1 text-sm font-medium text-gray-700 dark:text-gray-300">Full Name</label>
+                    <input type="text" id="name" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white" required>
+                </div>
+                 <div>
+                    <label for="phone" class="block mb-1 text-sm font-medium text-gray-700 dark:text-gray-300">Phone</label>
+                    <input type="tel" id="phone" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white" required>
+                </div>
+                <div>
+                    <label for="address" class="block mb-1 text-sm font-medium text-gray-700 dark:text-gray-300">Address</label>
+                    <input type="text" id="address" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                </div>
+                <button type="submit" class="w-full bg-amber-500 text-white font-bold py-2.5 px-4 rounded-lg hover:bg-amber-600 transition duration-300">Save Changes</button>
+            </form>
+        </div>
+        
+         <!-- Actions -->
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden">
+            <a href="redeem.html" class="block p-4 border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                <i class="fas fa-gift text-amber-500 w-6"></i>
+                <span class="ml-2 font-medium text-gray-700 dark:text-gray-300">Redeem Points</span>
+            </a>
+            <a href="#" id="change-password-link" class="block p-4 border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                <i class="fas fa-key text-amber-500 w-6"></i>
+                <span class="ml-2 font-medium text-gray-700 dark:text-gray-300">Change Password</span>
+            </a>
+             <button id="logout-btn" class="w-full text-left p-4 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                <i class="fas fa-sign-out-alt text-red-500 w-6"></i>
+                <span class="ml-2 font-medium text-red-500">Logout</span>
+            </button>
+        </div>
+    </main>
+
+    <!-- Bottom Navigation -->
+    <nav class="fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-800 p-2 bottom-nav z-50">
+        <div class="flex justify-around">
+             <a href="index.html" class="nav-item flex flex-col items-center text-gray-500 dark:text-gray-400 w-1/4"><i class="fas fa-home text-xl"></i><span class="text-xs">Home</span></a>
+             <a href="category.html" class="nav-item flex flex-col items-center text-gray-500 dark:text-gray-400 w-1/4"><i class="fas fa-th-large text-xl"></i><span class="text-xs">Categories</span></a>
+             <a href="order.html" class="nav-item flex flex-col items-center text-gray-500 dark:text-gray-400 w-1/4"><i class="fas fa-box text-xl"></i><span class="text-xs">Orders</span></a>
+             <a href="profile.html" class="nav-item active flex flex-col items-center text-gray-500 dark:text-gray-400 w-1/4"><i class="fas fa-user text-xl"></i><span class="text-xs">Profile</span></a>
+        </div>
+    </nav>
+    
+    <div id="toast" class="toast fixed bottom-24 left-1/2 -translate-x-1/2 bg-gray-800 text-white px-4 py-2 rounded-lg shadow-lg opacity-0 transition-opacity duration-300 z-50"></div>
+
+
+<script>
+    // CONFIG & SECURITY
+    document.addEventListener('contextmenu', event => event.preventDefault());
+    const firebaseConfig = {
+  apiKey: "AIzaSyBIwo7phmACkms_fjwfhEVJNgx5eiEQWBE",
+  authDomain: "atozmobialstores.firebaseapp.com",
+  projectId: "atozmobialstores",
+  storageBucket: "atozmobialstores.firebasestorage.app",
+  messagingSenderId: "879111411317",
+  appId: "1:879111411317:web:589d4b750cc113572a8a3c",
+  measurementId: "G-HDVSY5KYBK"
+};
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.firestore();
+    let currentUser = null;
+
+    function showToast(message, isError = false) {
+        const toast = document.getElementById('toast');
+        toast.textContent = message;
+        toast.className = `toast fixed bottom-24 left-1/2 -translate-x-1/2 px-4 py-2 rounded-lg shadow-lg transition-opacity duration-300 opacity-100 ${isError ? 'bg-red-500' : 'bg-green-600'} text-white`;
+        setTimeout(() => { toast.style.opacity = '0'; }, 3000);
+    }
+    
+    // PAGE LOGIC
+    document.addEventListener('DOMContentLoaded', () => {
+        auth.onAuthStateChanged(user => {
+            if (user) {
+                currentUser = user;
+                loadUserProfile();
+            } else {
+                window.location.replace('login.html');
+            }
+        });
+
+        document.getElementById('profile-form').addEventListener('submit', updateProfile);
+        document.getElementById('logout-btn').addEventListener('click', handleLogout);
+        document.getElementById('change-password-link').addEventListener('click', handleChangePassword);
+    });
+
+    async function loadUserProfile() {
+        if (!currentUser) return;
+        try {
+            // Fetch user data from Firestore
+            const userDoc = await db.collection('users').doc(currentUser.uid).get();
+            if (userDoc.exists) {
+                const data = userDoc.data();
+                document.getElementById('user-name-display').textContent = data.name;
+                document.getElementById('user-email-display').textContent = data.email;
+                document.getElementById('user-initial').textContent = data.name.charAt(0).toUpperCase();
+                document.getElementById('cash-points').textContent = data.total_points || 0;
+                
+                // Populate form
+                document.getElementById('name').value = data.name || '';
+                document.getElementById('phone').value = data.phone || '';
+                document.getElementById('address').value = data.address || '';
+            }
+            
+            // Fetch user order stats
+            const ordersSnapshot = await db.collection('orders').where('user_id', '==', currentUser.uid).get();
+            document.getElementById('total-purchases').textContent = ordersSnapshot.size;
+
+        } catch (error) {
+            console.error("Error loading user profile:", error);
+            showToast("Failed to load profile.", true);
+        }
+    }
+
+    async function updateProfile(event) {
+        event.preventDefault();
+        const name = document.getElementById('name').value;
+        const phone = document.getElementById('phone').value;
+        const address = document.getElementById('address').value;
+        
+        if (!currentUser) return;
+
+        try {
+            await db.collection('users').doc(currentUser.uid).update({
+                name: name,
+                phone: phone,
+                address: address
+            });
+            showToast("Profile updated successfully!");
+            loadUserProfile(); // Refresh display
+        } catch (error) {
+            console.error("Error updating profile:", error);
+            showToast("Update failed. Please try again.", true);
+        }
+    }
+    
+    async function handleChangePassword(event) {
+        event.preventDefault();
+        if(!currentUser.email) {
+            showToast("Cannot reset password for this account type.", true);
+            return;
+        }
+        
+        try {
+            await auth.sendPasswordResetEmail(currentUser.email);
+            showToast("Password reset link sent to your email!");
+        } catch (error) {
+            console.error("Error sending password reset email:", error);
+            showToast(error.message, true);
+        }
+    }
+
+    async function handleLogout() {
+        try {
+            await auth.signOut();
+            localStorage.clear(); // Clear cart and other session data
+            window.location.replace('login.html');
+        } catch (error) {
+            console.error("Logout Error:", error);
+            showToast("Logout failed. Please try again.", true);
+        }
+    }
+</script>
+</body>
+</html>

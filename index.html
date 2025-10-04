@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Atoz Mobile - Home</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome CDN -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore-compat.js"></script>
+
+    <style>
+        /* Custom scrollbar for horizontal category list */
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        /* Add padding to the bottom of the body to prevent content from being hidden by the nav bar */
+        body { padding-bottom: 80px; }
+        .bottom-nav { box-shadow: 0 -2px 10px rgba(0,0,0,0.1); }
+        .nav-item.active i, .nav-item.active span { color: #f59e0b; }
+    </style>
+</head>
+<body class="bg-gray-50 dark:bg-gray-900">
+
+    <!-- Header -->
+    <header class="sticky top-0 z-40 bg-white dark:bg-gray-800 shadow-md p-4">
+        <div class="container mx-auto flex justify-between items-center">
+            <h1 class="text-2xl font-bold text-amber-500">Atoz Mobile</h1>
+            <div class="flex items-center space-x-4">
+                <button class="text-gray-600 dark:text-gray-300"><i class="fas fa-bell"></i></button>
+                <a href="cart.html" class="text-gray-600 dark:text-gray-300 relative">
+                    <i class="fas fa-shopping-cart"></i>
+                    <span id="cart-badge" class="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full h-4 w-4 flex items-center justify-center">0</span>
+                </a>
+            </div>
+        </div>
+        <div class="container mx-auto mt-4">
+            <div class="relative">
+                <input type="text" placeholder="Search for products..." class="w-full pl-10 pr-4 py-2 rounded-full bg-gray-100 dark:bg-gray-700 border border-transparent focus:outline-none focus:ring-2 focus:ring-amber-500">
+                <i class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"></i>
+            </div>
+        </div>
+    </header>
+
+    <main class="container mx-auto p-4">
+        <!-- Banner/Carousel Placeholder -->
+        <div class="w-full h-48 bg-gradient-to-r from-amber-400 to-orange-500 rounded-2xl mb-6 flex items-center justify-center text-white p-4 shadow-lg">
+            <div>
+                <h2 class="text-2xl font-bold">Latest iPhones</h2>
+                <p>Starting at रू 120,000</p>
+                <button class="mt-2 bg-white text-amber-600 font-bold py-1 px-4 rounded-full text-sm">Shop Now</button>
+            </div>
+        </div>
+
+        <!-- Categories -->
+        <section class="mb-8">
+            <div class="flex justify-between items-center mb-3">
+                <h2 class="text-xl font-bold text-gray-800 dark:text-white">Categories</h2>
+                <a href="category.html" class="text-sm font-medium text-amber-600">View All</a>
+            </div>
+            <div id="category-list" class="flex space-x-4 overflow-x-auto pb-2 no-scrollbar">
+                <!-- Skeleton Loader -->
+                <div class="flex-shrink-0 w-20 text-center animate-pulse"_repeat="6">
+                    <div class="w-16 h-16 bg-gray-200 dark:bg-gray-700 rounded-full mx-auto"></div>
+                    <div class="mt-2 h-4 w-16 bg-gray-200 dark:bg-gray-700 rounded mx-auto"></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Featured Products -->
+        <section>
+            <h2 class="text-xl font-bold text-gray-800 dark:text-white mb-4">Featured Products</h2>
+            <div id="product-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                <!-- Skeleton Loader -->
+                <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-2 animate-pulse" _repeat="4">
+                    <div class="w-full h-32 bg-gray-200 dark:bg-gray-700 rounded-md mb-3"></div>
+                    <div class="h-4 bg-gray-200 dark:bg-gray-700 rounded w-3/4 mb-2"></div>
+                    <div class="h-6 bg-gray-200 dark:bg-gray-700 rounded w-1/2"></div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Bottom Navigation -->
+    <nav class="fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-800 p-2 bottom-nav z-50">
+        <div class="flex justify-around">
+            <a href="index.html" class="nav-item active flex flex-col items-center text-gray-500 dark:text-gray-400 w-1/4">
+                <i class="fas fa-home text-xl"></i>
+                <span class="text-xs">Home</span>
+            </a>
+            <a href="category.html" class="nav-item flex flex-col items-center text-gray-500 dark:text-gray-400 w-1/4">
+                <i class="fas fa-th-large text-xl"></i>
+                <span class="text-xs">Categories</span>
+            </a>
+            <a href="order.html" class="nav-item flex flex-col items-center text-gray-500 dark:text-gray-400 w-1/4">
+                <i class="fas fa-box text-xl"></i>
+                <span class="text-xs">Orders</span>
+            </a>
+            <a href="profile.html" class="nav-item flex flex-col items-center text-gray-500 dark:text-gray-400 w-1/4">
+                <i class="fas fa-user text-xl"></i>
+                <span class="text-xs">Profile</span>
+            </a>
+        </div>
+    </nav>
+    
+    <!-- Toast Notification -->
+    <div id="toast" class="toast fixed bottom-20 left-1/2 -translate-x-1/2 bg-gray-800 text-white px-4 py-2 rounded-lg shadow-lg opacity-0 transition-opacity duration-300"></div>
+
+
+<script>
+    // -------------------
+    //  SECURITY & UTILS
+    // -------------------
+    document.addEventListener('contextmenu', event => event.preventDefault());
+    
+    // -------------------
+    //  FIREBASE CONFIG
+    // -------------------
+    const firebaseConfig = {
+  apiKey: "AIzaSyBIwo7phmACkms_fjwfhEVJNgx5eiEQWBE",
+  authDomain: "atozmobialstores.firebaseapp.com",
+  projectId: "atozmobialstores",
+  storageBucket: "atozmobialstores.firebasestorage.app",
+  messagingSenderId: "879111411317",
+  appId: "1:879111411317:web:589d4b750cc113572a8a3c",
+  measurementId: "G-HDVSY5KYBK"
+};
+
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.firestore();
+
+    // -------------------
+    //  COMMON FUNCTIONS
+    // -------------------
+    function showToast(message) {
+        const toast = document.getElementById('toast');
+        toast.textContent = message;
+        toast.style.opacity = '1';
+        setTimeout(() => {
+            toast.style.opacity = '0';
+        }, 2000);
+    }
+
+    function updateCartBadge() {
+        const cart = JSON.parse(localStorage.getItem('cart')) || [];
+        const badge = document.getElementById('cart-badge');
+        badge.textContent = cart.reduce((sum, item) => sum + item.quantity, 0);
+    }
+    
+    function authGuard() {
+        auth.onAuthStateChanged(user => {
+            if (!user) {
+                console.log("No user logged in, redirecting to login.html");
+                window.location.replace('login.html');
+            }
+        });
+    }
+
+    // -------------------
+    // PAGE LOGIC
+    // -------------------
+    document.addEventListener('DOMContentLoaded', () => {
+        authGuard();
+        updateCartBadge();
+        fetchCategories();
+        fetchFeaturedProducts();
+    });
+
+    // Fetch and display categories
+    async function fetchCategories() {
+        const categoryList = document.getElementById('category-list');
+        try {
+            const snapshot = await db.collection('categories').limit(8).get();
+            if (snapshot.empty) {
+                categoryList.innerHTML = '<p class="text-gray-500">No categories found.</p>';
+                return;
+            }
+            let html = '';
+            snapshot.forEach(doc => {
+                const category = doc.data();
+                html += `
+                    <a href="product.html?category=${doc.id}" class="flex-shrink-0 w-20 text-center">
+                        <div class="w-16 h-16 bg-white dark:bg-gray-700 rounded-full mx-auto flex items-center justify-center shadow-md overflow-hidden">
+                            <img src="${category.image}" alt="${category.name}" class="w-full h-full object-cover">
+                        </div>
+                        <p class="mt-2 text-xs font-medium text-gray-700 dark:text-gray-300 truncate">${category.name}</p>
+                    </a>
+                `;
+            });
+            categoryList.innerHTML = html;
+        } catch (error) {
+            console.error("Error fetching categories: ", error);
+            categoryList.innerHTML = '<p class="text-red-500">Could not load categories.</p>';
+        }
+    }
+
+    // Fetch and display featured products
+    async function fetchFeaturedProducts() {
+        const productGrid = document.getElementById('product-grid');
+        try {
+            const snapshot = await db.collection('products').limit(8).get();
+            if (snapshot.empty) {
+                productGrid.innerHTML = '<p class="text-gray-500 col-span-full">No products found.</p>';
+                return;
+            }
+            let html = '';
+            snapshot.forEach(doc => {
+                const product = { id: doc.id, ...doc.data() };
+                html += `
+                    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden transition-transform duration-300 hover:scale-105">
+                        <a href="product_detail.html?id=${product.id}">
+                            <img src="${product.image}" alt="${product.name}" class="w-full h-32 object-cover">
+                        </a>
+                        <div class="p-3">
+                            <h3 class="font-semibold text-sm text-gray-800 dark:text-white truncate">${product.name}</h3>
+                            <p class="text-lg font-bold text-amber-600 mt-1">रू ${product.price.toLocaleString()}</p>
+                            <button onclick="addToCart('${product.id}', '${product.name}', ${product.price}, '${product.image}')" class="w-full mt-2 bg-amber-500 text-white text-xs font-bold py-2 rounded-lg hover:bg-amber-600 transition-colors">
+                                <i class="fas fa-cart-plus mr-1"></i> Add to Cart
+                            </button>
+                        </div>
+                    </div>
+                `;
+            });
+            productGrid.innerHTML = html;
+        } catch (error) {
+            console.error("Error fetching products: ", error);
+            productGrid.innerHTML = '<p class="text-red-500 col-span-full">Could not load products.</p>';
+        }
+    }
+    
+    // Add to cart functionality
+    function addToCart(id, name, price, image) {
+        let cart = JSON.parse(localStorage.getItem('cart')) || [];
+        const existingItem = cart.find(item => item.id === id);
+        
+        if (existingItem) {
+            existingItem.quantity++;
+        } else {
+            cart.push({ id, name, price, image, quantity: 1 });
+        }
+        
+        localStorage.setItem('cart', JSON.stringify(cart));
+        showToast(`${name} added to cart!`);
+        updateCartBadge();
+    }
+
+</script>
+</body>
+</html>

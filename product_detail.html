@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Atoz Mobile - Product Details</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore-compat.js"></script>
+    <style>
+        body { padding-bottom: 80px; }
+        .slider-container { scroll-snap-type: x mandatory; }
+        .slider-item { scroll-snap-align: center; }
+        .slider-dot { transition: background-color 0.3s ease; }
+        .slider-dot.active { background-color: #f59e0b; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
+</head>
+<body class="bg-gray-100 dark:bg-gray-900">
+
+    <!-- Header -->
+    <header class="sticky top-0 z-40 bg-white dark:bg-gray-800 shadow-sm p-4">
+        <div class="container mx-auto flex justify-between items-center">
+            <button onclick="window.history.back()" class="text-gray-600 dark:text-gray-300"><i class="fas fa-arrow-left text-xl"></i></button>
+            <h1 class="text-xl font-bold text-gray-800 dark:text-white">Product Detail</h1>
+            <a href="cart.html" class="text-gray-600 dark:text-gray-300 relative">
+                <i class="fas fa-shopping-cart text-xl"></i>
+                <span id="cart-badge" class="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full h-4 w-4 flex items-center justify-center">0</span>
+            </a>
+        </div>
+    </header>
+
+    <main id="main-content">
+        <!-- Skeleton Loader -->
+        <div id="skeleton-loader" class="animate-pulse">
+            <div class="bg-gray-300 dark:bg-gray-700 w-full h-64 sm:h-80"></div>
+            <div class="p-4 space-y-4">
+                <div class="h-8 bg-gray-300 dark:bg-gray-700 rounded w-3/4"></div>
+                <div class="h-10 bg-gray-300 dark:bg-gray-700 rounded w-1/2"></div>
+                <div class="h-4 bg-gray-300 dark:bg-gray-700 rounded w-full"></div>
+                <div class="h-4 bg-gray-300 dark:bg-gray-700 rounded w-5/6"></div>
+                <div class="h-4 bg-gray-300 dark:bg-gray-700 rounded w-2/3"></div>
+            </div>
+        </div>
+        
+        <!-- Actual Content (hidden initially) -->
+        <div id="product-content" class="hidden">
+            <!-- Image Slider -->
+            <div class="relative">
+                <div id="slider" class="slider-container flex overflow-x-auto no-scrollbar">
+                    <!-- Images will be injected here -->
+                </div>
+                <div id="slider-dots" class="absolute bottom-4 left-1/2 -translate-x-1/2 flex space-x-2">
+                    <!-- Dots will be injected here -->
+                </div>
+            </div>
+            
+            <div class="p-4 bg-white dark:bg-gray-800">
+                <h2 id="product-name" class="text-2xl font-bold text-gray-900 dark:text-white"></h2>
+                <p id="product-price" class="text-3xl font-extrabold text-amber-600 my-2"></p>
+                <div id="stock-status" class="text-sm font-medium"></div>
+
+                <div class="mt-4 border-t border-gray-200 dark:border-gray-700 pt-4">
+                    <h3 class="font-semibold text-gray-800 dark:text-gray-300">Description</h3>
+                    <p id="product-description" class="mt-2 text-gray-600 dark:text-gray-400 text-sm leading-relaxed"></p>
+                </div>
+            </div>
+            
+             <!-- Redeem Code Section -->
+            <div class="p-4 mt-2 bg-white dark:bg-gray-800">
+                <h3 class="font-semibold text-gray-800 dark:text-gray-300 mb-2">Have a Redeem Code?</h3>
+                <div class="flex space-x-2">
+                    <input type="text" id="redeem-code-input" placeholder="Enter code" class="flex-grow px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                    <button onclick="applyRedeemCode()" class="bg-gray-800 text-white dark:bg-gray-200 dark:text-gray-800 font-bold px-4 py-2 rounded-lg">Apply</button>
+                </div>
+                 <p id="discount-info" class="text-sm text-green-600 mt-2 hidden"></p>
+            </div>
+        </div>
+    </main>
+
+    <!-- Bottom Action Bar -->
+    <div class="fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-800 p-3 shadow-[0_-2px_10px_rgba(0,0,0,0.1)] z-50 flex items-center justify-between">
+        <div class="flex items-center">
+            <button onclick="updateQuantity(-1)" class="w-8 h-8 rounded-full border border-gray-300 dark:border-gray-600 text-lg font-bold">-</button>
+            <span id="quantity" class="w-12 text-center text-lg font-bold">1</span>
+            <button onclick="updateQuantity(1)" class="w-8 h-8 rounded-full border border-gray-300 dark:border-gray-600 text-lg font-bold">+</button>
+        </div>
+        <button id="add-to-cart-btn" class="w-1/2 bg-gradient-to-r from-amber-500 to-orange-500 text-white font-bold py-3 px-4 rounded-lg hover:from-amber-600 hover:to-orange-600 transition duration-300">
+            Add to Cart
+        </button>
+    </div>
+    
+    <!-- Toast Notification -->
+    <div id="toast" class="toast fixed bottom-24 left-1/2 -translate-x-1/2 bg-gray-800 text-white px-4 py-2 rounded-lg shadow-lg opacity-0 transition-opacity duration-300"></div>
+
+<script>
+    // -------------------
+    //  SECURITY & CONFIG
+    // -------------------
+    document.addEventListener('contextmenu', event => event.preventDefault());
+    const firebaseConfig = {
+  apiKey: "AIzaSyBIwo7phmACkms_fjwfhEVJNgx5eiEQWBE",
+  authDomain: "atozmobialstores.firebaseapp.com",
+  projectId: "atozmobialstores",
+  storageBucket: "atozmobialstores.firebasestorage.app",
+  messagingSenderId: "879111411317",
+  appId: "1:879111411317:web:589d4b750cc113572a8a3c",
+  measurementId: "G-HDVSY5KYBK"
+};
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.firestore();
+
+    let currentProduct = null;
+    let appliedDiscount = 0;
+    let appliedCode = null;
+
+    // -------------------
+    //  COMMON FUNCTIONS
+    // -------------------
+    function authGuard() {
+        auth.onAuthStateChanged(user => { if (!user) window.location.replace('login.html'); });
+    }
+    function showToast(message, isError = false) {
+        const toast = document.getElementById('toast');
+        toast.textContent = message;
+        toast.className = `toast fixed bottom-24 left-1/2 -translate-x-1/2 px-4 py-2 rounded-lg shadow-lg transition-opacity duration-300 opacity-100 ${isError ? 'bg-red-500' : 'bg-green-600'} text-white`;
+        setTimeout(() => { toast.style.opacity = '0'; }, 3000);
+    }
+    function updateCartBadge() {
+        const cart = JSON.parse(localStorage.getItem('cart')) || [];
+        document.getElementById('cart-badge').textContent = cart.reduce((sum, item) => sum + item.quantity, 0);
+    }
+
+    // -------------------
+    // PAGE LOGIC
+    // -------------------
+    document.addEventListener('DOMContentLoaded', () => {
+        authGuard();
+        updateCartBadge();
+        const urlParams = new URLSearchParams(window.location.search);
+        const productId = urlParams.get('id');
+        if (productId) {
+            fetchProductDetails(productId);
+        } else {
+            document.getElementById('main-content').innerHTML = '<p class="p-4 text-center text-red-500">Product not found.</p>';
+        }
+    });
+
+    async function fetchProductDetails(productId) {
+        try {
+            const doc = await db.collection('products').doc(productId).get();
+            if (!doc.exists) {
+                document.getElementById('main-content').innerHTML = '<p class="p-4 text-center text-red-500">Product does not exist.</p>';
+                return;
+            }
+            currentProduct = { id: doc.id, ...doc.data() };
+            
+            // Assuming image is a single URL for simplicity. Can be adapted for an array.
+            const images = [currentProduct.image, 'https://via.placeholder.com/400x400.png/ffa500/ffffff?text=View+2', 'https://via.placeholder.com/400x400.png/ff8c00/ffffff?text=View+3'];
+            
+            // Populate slider
+            const slider = document.getElementById('slider');
+            const dotsContainer = document.getElementById('slider-dots');
+            slider.innerHTML = images.map(img => `<img src="${img}" class="w-full h-64 sm:h-80 object-cover flex-shrink-0 slider-item">`).join('');
+            dotsContainer.innerHTML = images.map((_, i) => `<div class="slider-dot w-2 h-2 bg-gray-300 rounded-full ${i === 0 ? 'active' : ''}"></div>`).join('');
+            
+            // Populate details
+            document.getElementById('product-name').textContent = currentProduct.name;
+            updatePriceDisplay();
+            document.getElementById('product-description').textContent = currentProduct.description;
+            
+            const stockStatus = document.getElementById('stock-status');
+            if (currentProduct.stock > 0) {
+                stockStatus.innerHTML = `<i class="fas fa-check-circle text-green-500"></i> In Stock (${currentProduct.stock} left)`;
+            } else {
+                stockStatus.innerHTML = `<i class="fas fa-times-circle text-red-500"></i> Out of Stock`;
+                document.getElementById('add-to-cart-btn').disabled = true;
+                document.getElementById('add-to-cart-btn').textContent = 'Out of Stock';
+                document.getElementById('add-to-cart-btn').classList.add('bg-gray-400');
+            }
+            
+            // Show content and hide loader
+            document.getElementById('skeleton-loader').classList.add('hidden');
+            document.getElementById('product-content').classList.remove('hidden');
+            
+            // Attach event listeners after content is visible
+            document.getElementById('add-to-cart-btn').addEventListener('click', handleAddToCart);
+            setupSlider();
+        } catch (error) {
+            console.error("Error fetching product details: ", error);
+            document.getElementById('main-content').innerHTML = `<p class="p-4 text-center text-red-500">Error: ${error.message}</p>`;
+        }
+    }
+
+    function setupSlider() {
+        const slider = document.getElementById('slider');
+        const dots = document.querySelectorAll('.slider-dot');
+        slider.addEventListener('scroll', () => {
+            const scrollLeft = slider.scrollLeft;
+            const itemWidth = slider.querySelector('.slider-item').clientWidth;
+            const activeIndex = Math.round(scrollLeft / itemWidth);
+            dots.forEach((dot, i) => {
+                dot.classList.toggle('active', i === activeIndex);
+            });
+        });
+    }
+
+    function updateQuantity(change) {
+        const quantityEl = document.getElementById('quantity');
+        let currentQuantity = parseInt(quantityEl.textContent);
+        currentQuantity += change;
+        if (currentQuantity < 1) currentQuantity = 1;
+        if (currentProduct && currentQuantity > currentProduct.stock) {
+            currentQuantity = currentProduct.stock;
+            showToast(`Only ${currentProduct.stock} items in stock!`, true);
+        }
+        quantityEl.textContent = currentQuantity;
+    }
+
+    function handleAddToCart() {
+        if (!currentProduct) return;
+        const quantity = parseInt(document.getElementById('quantity').textContent);
+        
+        let cart = JSON.parse(localStorage.getItem('cart')) || [];
+        const existingItemIndex = cart.findIndex(item => item.id === currentProduct.id);
+        
+        const finalPrice = currentProduct.price - (appliedDiscount / quantity);
+
+        if (existingItemIndex > -1) {
+            cart[existingItemIndex].quantity += quantity;
+            // Note: If a user adds the same item with and without a discount, this simplifies to just adding quantity.
+            // A more complex logic would be needed to handle different prices for the same item.
+        } else {
+            cart.push({
+                id: currentProduct.id,
+                name: currentProduct.name,
+                price: finalPrice, // Price per item after discount
+                image: currentProduct.image,
+                quantity: quantity,
+                originalPrice: currentProduct.price,
+                redeemCode: appliedCode
+            });
+        }
+        
+        localStorage.setItem('cart', JSON.stringify(cart));
+        showToast(`${quantity} x ${currentProduct.name} added to cart!`);
+        updateCartBadge();
+    }
+    
+    async function applyRedeemCode() {
+        const codeInput = document.getElementById('redeem-code-input');
+        const code = codeInput.value.trim().toUpperCase();
+        if (!code) {
+            showToast("Please enter a redeem code.", true);
+            return;
+        }
+
+        const user = auth.currentUser;
+        if (!user) {
+            showToast("You must be logged in to apply a code.", true);
+            return;
+        }
+
+        try {
+            const redeemCodeRef = db.collection('redeem_codes')
+                .where('code', '==', code)
+                .where('user_id', '==', user.uid)
+                .where('status', '==', 'unused');
+            
+            const snapshot = await redeemCodeRef.get();
+
+            if (snapshot.empty) {
+                showToast("Invalid or already used redeem code.", true);
+                return;
+            }
+
+            const doc = snapshot.docs[0];
+            const redeemData = doc.data();
+
+            appliedDiscount = redeemData.value;
+            appliedCode = redeemData.code;
+
+            const discountInfo = document.getElementById('discount-info');
+            discountInfo.textContent = `Success! रू ${appliedDiscount.toLocaleString()} discount will be applied.`;
+            discountInfo.classList.remove('hidden');
+            codeInput.disabled = true;
+            document.querySelector('#redeem-code-input + button').disabled = true;
+            
+            updatePriceDisplay();
+            showToast(`Code applied successfully!`);
+
+        } catch (error) {
+            console.error("Error applying redeem code:", error);
+            showToast("Could not apply code. Please try again.", true);
+        }
+    }
+
+    function updatePriceDisplay() {
+        if (!currentProduct) return;
+        const finalPrice = currentProduct.price - appliedDiscount;
+        const priceEl = document.getElementById('product-price');
+        
+        if (appliedDiscount > 0) {
+            priceEl.innerHTML = `
+                <span class="text-gray-400 line-through text-2xl">रू ${currentProduct.price.toLocaleString()}</span>
+                <span class="ml-2">रू ${finalPrice.toLocaleString()}</span>
+            `;
+        } else {
+            priceEl.textContent = `रू ${currentProduct.price.toLocaleString()}`;
+        }
+    }
+</script>
+</body>
+</html>

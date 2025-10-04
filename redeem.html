@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Atoz Mobile - Redeem & Loyalty</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore-compat.js"></script>
+    <style>
+        body { padding-bottom: 80px; }
+        .bottom-nav { box-shadow: 0 -2px 10px rgba(0,0,0,0.1); }
+        .nav-item.active i, .nav-item.active span { color: #f59e0b; }
+        .tab-active {
+            border-bottom-color: #f59e0b;
+            color: #f59e0b;
+        }
+        .redeem-card-active {
+            background: linear-gradient(135deg, #fef9c3, #fffbeb);
+            border-left: 4px solid #f59e0b;
+        }
+        .redeem-card-used {
+            background: linear-gradient(135deg, #f3f4f6, #e5e7eb);
+            border-left: 4px solid #6b7280;
+        }
+         .redeem-card-expired {
+            background: linear-gradient(135deg, #fee2e2, #fecaca);
+            border-left: 4px solid #ef4444;
+        }
+        .toast {
+            opacity: 0;
+            transition: opacity 0.3s ease-in-out;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 dark:bg-gray-900">
+
+    <!-- Header -->
+    <header class="sticky top-0 z-40 bg-white dark:bg-gray-800 shadow-sm p-4">
+        <div class="container mx-auto flex items-center">
+            <a href="profile.html" class="text-gray-600 dark:text-gray-300 mr-4"><i class="fas fa-arrow-left text-xl"></i></a>
+            <h1 class="text-xl font-bold text-gray-800 dark:text-white">Redeem & Loyalty</h1>
+        </div>
+    </header>
+
+    <main class="container mx-auto p-4 space-y-6">
+        <!-- Points Summary -->
+        <div class="bg-gradient-to-r from-amber-500 to-orange-500 text-white p-6 rounded-2xl shadow-lg text-center">
+            <p class="text-lg font-medium">Your Current Loyalty Points</p>
+            <p id="loyalty-points" class="text-5xl font-extrabold mt-2">
+                <i class="fas fa-spinner fa-spin"></i>
+            </p>
+            <p class="text-sm opacity-80 mt-2">Earn more points with every purchase!</p>
+        </div>
+
+        <!-- Apply Code -->
+        <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md">
+            <label for="apply-code-input" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Have a promotional code?</label>
+            <div class="flex space-x-2">
+                <input type="text" id="apply-code-input" placeholder="Enter code to check status" class="flex-grow px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                <button onclick="checkCode()" class="bg-gray-800 text-white dark:bg-gray-200 dark:text-gray-800 font-bold px-4 py-2 rounded-lg">Check</button>
+            </div>
+        </div>
+
+        <!-- Tabs -->
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md">
+            <div class="flex border-b border-gray-200 dark:border-gray-700">
+                <button id="activeTab" class="flex-1 py-3 text-center font-semibold text-gray-700 dark:text-gray-300 border-b-2 tab-active" onclick="showTab('active')">Active</button>
+                <button id="usedTab" class="flex-1 py-3 text-center font-semibold text-gray-500 dark:text-gray-400 border-b-2 border-transparent" onclick="showTab('used')">Used</button>
+                <button id="expiredTab" class="flex-1 py-3 text-center font-semibold text-gray-500 dark:text-gray-400 border-b-2 border-transparent" onclick="showTab('expired')">Expired</button>
+            </div>
+            <div class="p-4">
+                <div id="active-codes-container">
+                    <!-- Skeleton Loader -->
+                    <div class="p-3 mb-3 rounded-lg animate-pulse bg-gray-200 dark:bg-gray-700 h-20"></div>
+                    <div class="p-3 mb-3 rounded-lg animate-pulse bg-gray-200 dark:bg-gray-700 h-20"></div>
+                </div>
+                <div id="used-codes-container" class="hidden"></div>
+                <div id="expired-codes-container" class="hidden"></div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Bottom Navigation -->
+    <nav class="fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-800 p-2 bottom-nav z-50">
+        <div class="flex justify-around">
+             <a href="index.html" class="nav-item flex flex-col items-center text-gray-500 dark:text-gray-400 w-1/4"><i class="fas fa-home text-xl"></i><span class="text-xs">Home</span></a>
+             <a href="category.html" class="nav-item flex flex-col items-center text-gray-500 dark:text-gray-400 w-1/4"><i class="fas fa-th-large text-xl"></i><span class="text-xs">Categories</span></a>
+             <a href="order.html" class="nav-item flex flex-col items-center text-gray-500 dark:text-gray-400 w-1/4"><i class="fas fa-box text-xl"></i><span class="text-xs">Orders</span></a>
+             <a href="profile.html" class="nav-item active flex flex-col items-center text-gray-500 dark:text-gray-400 w-1/4"><i class="fas fa-user text-xl"></i><span class="text-xs">Profile</span></a>
+        </div>
+    </nav>
+    
+    <div id="toast" class="toast fixed bottom-24 left-1/2 -translate-x-1/2 bg-gray-800 text-white px-4 py-2 rounded-lg shadow-lg z-50"></div>
+
+<script>
+    // -------------------
+    //  CONFIG & SECURITY
+    // -------------------
+    document.addEventListener('contextmenu', event => event.preventDefault());
+    const firebaseConfig = {
+      apiKey: "AIzaSyBIwo7phmACkms_fjwfhEVJNgx5eiEQWBE",
+      authDomain: "atozmobialstores.firebaseapp.com",
+      projectId: "atozmobialstores",
+      storageBucket: "atozmobialstores.firebasestorage.app",
+      messagingSenderId: "879111411317",
+      appId: "1:879111411317:web:589d4b750cc113572a8a3c",
+      measurementId: "G-HDVSY5KYBK"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.firestore();
+    let currentUser = null;
+
+    function showToast(message, isError = false) {
+        const toast = document.getElementById('toast');
+        toast.textContent = message;
+        toast.className = `toast fixed bottom-24 left-1/2 -translate-x-1/2 px-4 py-2 rounded-lg shadow-lg transition-opacity duration-300 opacity-100 ${isError ? 'bg-red-600' : 'bg-green-600'} text-white z-50`;
+        setTimeout(() => { 
+            toast.style.opacity = '0'; 
+        }, 3000);
+    }
+    
+    // -------------------
+    // PAGE LOGIC
+    // -------------------
+    document.addEventListener('DOMContentLoaded', () => {
+        auth.onAuthStateChanged(user => {
+            if (user) {
+                currentUser = user;
+                loadRedeemData();
+            } else {
+                window.location.replace('login.html');
+            }
+        });
+    });
+
+    async function loadRedeemData() {
+        if (!currentUser) return;
+
+        // Fetch user points
+        try {
+            const userDoc = await db.collection('users').doc(currentUser.uid).get();
+            if(userDoc.exists) {
+                document.getElementById('loyalty-points').textContent = userDoc.data().total_points || 0;
+            } else {
+                document.getElementById('loyalty-points').textContent = 0;
+            }
+        } catch (e) {
+            console.error("Could not fetch user points", e);
+            document.getElementById('loyalty-points').textContent = 'N/A';
+        }
+
+        // Fetch redeem codes
+        try {
+            const snapshot = await db.collection('redeem_codes')
+                .where('user_id', '==', currentUser.uid)
+                .get();
+            
+            let allCodes = [];
+            snapshot.forEach(doc => {
+                allCodes.push({ id: doc.id, ...doc.data() });
+            });
+
+            allCodes.sort((a, b) => {
+                const dateA = a.created_at ? a.created_at.toMillis() : 0;
+                const dateB = b.created_at ? b.created_at.toMillis() : 0;
+                return dateB - dateA; // Sorts from newest to oldest
+            });
+
+            const activeCodes = [], usedCodes = [], expiredCodes = [];
+            allCodes.forEach(code => {
+                if (code.status === 'unused') activeCodes.push(code);
+                else if (code.status === 'used') usedCodes.push(code);
+                else if (code.status === 'expired') expiredCodes.push(code);
+            });
+
+            renderCodes(activeCodes, 'active-codes-container', 'active');
+            renderCodes(usedCodes, 'used-codes-container', 'used');
+            renderCodes(expiredCodes, 'expired-codes-container', 'expired');
+
+        } catch (error) {
+            console.error("Error fetching redeem codes:", error);
+            showToast("Could not load your codes.", true);
+            document.getElementById('active-codes-container').innerHTML = `<div class="text-center py-6"><p class="text-red-500">Error loading codes. Please try again later.</p></div>`;
+            document.getElementById('used-codes-container').innerHTML = `<div class="text-center py-6"><p class="text-red-500">Error loading codes.</p></div>`;
+            document.getElementById('expired-codes-container').innerHTML = `<div class="text-center py-6"><p class="text-red-500">Error loading codes.</p></div>`;
+        }
+    }
+
+    function renderCodes(codes, containerId, type) {
+        const container = document.getElementById(containerId);
+        if (codes.length === 0) {
+            container.innerHTML = `<div class="text-center py-6">
+                <i class="fas fa-ticket-alt text-4xl text-gray-300 dark:text-gray-600"></i>
+                <p class="mt-2 text-gray-500">No ${type} codes found.</p>
+            </div>`;
+            return;
+        }
+
+        let html = codes.map(code => {
+            const createdDate = code.created_at ? code.created_at.toDate().toLocaleDateString('en-GB') : 'N/A';
+            const usedDate = code.used_at ? code.used_at.toDate().toLocaleDateString('en-GB') : '';
+            
+            let cardClass = 'redeem-card-active';
+            let dateInfo = `<p class="text-xs text-gray-500 dark:text-gray-400">Issued: ${createdDate}</p>`;
+            let actionButton = `<button onclick="copyCode('${code.code}')" class="bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold px-3 py-1 rounded-full">COPY</button>`;
+            
+            if (type === 'used') {
+                cardClass = 'redeem-card-used';
+                dateInfo = `<p class="text-xs text-gray-500 dark:text-gray-400">Used on: ${usedDate}</p>`;
+                actionButton = `<span class="text-sm font-semibold text-gray-600 dark:text-gray-300">USED</span>`;
+            } else if (type === 'expired') {
+                cardClass = 'redeem-card-expired';
+                dateInfo = `<p class="text-xs text-red-600 dark:text-red-400">Expired</p>`;
+                actionButton = `<span class="text-sm font-semibold text-red-600 dark:text-red-400">EXPIRED</span>`;
+            }
+
+            return `
+                <div class="p-3 mb-3 rounded-lg shadow-sm ${cardClass}">
+                    <div class="flex justify-between items-center">
+                        <div>
+                            <p class="font-bold text-lg text-gray-800 dark:text-gray-900">${code.code}</p>
+                            <p class="font-semibold text-green-700 dark:text-green-600">Value: रू ${code.value ? code.value.toLocaleString() : '0'}</p>
+                        </div>
+                        ${actionButton}
+                    </div>
+                    <div class="mt-2">
+                        ${dateInfo}
+                    </div>
+                </div>
+            `;
+        }).join('');
+
+        container.innerHTML = html;
+    }
+
+    function showTab(tabName) {
+        const containers = ['active-codes-container', 'used-codes-container', 'expired-codes-container'];
+        const tabs = ['activeTab', 'usedTab', 'expiredTab'];
+
+        containers.forEach(c => document.getElementById(c).classList.add('hidden'));
+        tabs.forEach(t => document.getElementById(t).classList.remove('tab-active', 'text-gray-700', 'dark:text-gray-300', 'text-gray-500', 'dark:text-gray-400'));
+
+        document.getElementById(`${tabName}-codes-container`).classList.remove('hidden');
+        const activeTabElement = document.getElementById(`${tabName}Tab`);
+        activeTabElement.classList.add('tab-active');
+        
+        tabs.forEach(t => {
+            const tabEl = document.getElementById(t);
+            if (t === `${tabName}Tab`) {
+                tabEl.classList.add('text-gray-700', 'dark:text-gray-300');
+            } else {
+                tabEl.classList.add('text-gray-500', 'dark:text-gray-400');
+            }
+        });
+    }
+    
+    // ----- FIX: UNIVERSAL COPY FUNCTION -----
+    function copyCode(code) {
+        // Create a temporary textarea element to hold the text
+        const textArea = document.createElement("textarea");
+        textArea.value = code;
+
+        // Make the textarea invisible and add it to the page
+        textArea.style.position = "absolute";
+        textArea.style.left = "-9999px";
+        document.body.appendChild(textArea);
+
+        // Select the text inside the textarea and execute the copy command
+        textArea.focus();
+        textArea.select();
+        try {
+            document.execCommand('copy');
+            showToast(`Code "${code}" copied to clipboard!`);
+        } catch (err) {
+            showToast('Failed to copy code.', true);
+            console.error('Could not copy text: ', err);
+        }
+
+        // Remove the temporary textarea from the page
+        document.body.removeChild(textArea);
+    }
+
+    async function checkCode() {
+        const input = document.getElementById('apply-code-input');
+        const code = input.value.trim().toUpperCase();
+        if (!code) {
+            showToast("Please enter a code.", true);
+            return;
+        }
+
+        try {
+            const snapshot = await db.collection('redeem_codes')
+                .where('code', '==', code)
+                .where('user_id', '==', currentUser.uid)
+                .limit(1).get();
+            
+            if (snapshot.empty) {
+                showToast(`Code "${code}" is not valid for your account.`, true);
+                return;
+            }
+
+            const data = snapshot.docs[0].data();
+            showToast(`Code is valid! Status: ${data.status}. Value: रू ${data.value}`);
+
+        } catch (error) {
+            console.error("Error checking code:", error);
+            showToast("An error occurred while checking the code.", true);
+        }
+    }
+</script>
+</body>
+</html>

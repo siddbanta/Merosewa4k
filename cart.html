@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Atoz Mobile - My Cart</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore-compat.js"></script>
+    <style>
+        /* To prevent content from being hidden by the fixed bottom bar */
+        body { padding-bottom: 100px; }
+        .cart-item-card {
+            transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+        }
+        .cart-item-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+        }
+    </style>
+</head>
+<body class="bg-gray-100 dark:bg-gray-900">
+
+    <!-- Header -->
+    <header class="sticky top-0 z-40 bg-white dark:bg-gray-800 shadow-sm p-4">
+        <div class="container mx-auto flex items-center">
+            <button onclick="window.history.back()" class="text-gray-600 dark:text-gray-300 mr-4"><i class="fas fa-arrow-left text-xl"></i></button>
+            <h1 class="text-xl font-bold text-gray-800 dark:text-white">My Cart</h1>
+        </div>
+    </header>
+
+    <main class="container mx-auto p-4">
+        <div id="cart-items-container" class="space-y-4">
+            <!-- Cart items will be dynamically inserted here -->
+        </div>
+
+        <!-- Empty Cart Message -->
+        <div id="empty-cart-message" class="hidden text-center py-16">
+            <i class="fas fa-shopping-cart text-6xl text-gray-300 dark:text-gray-600 mb-4"></i>
+            <h2 class="text-2xl font-bold text-gray-700 dark:text-gray-300">Your Cart is Empty</h2>
+            <p class="text-gray-500 dark:text-gray-400 mt-2">Looks like you haven't added anything to your cart yet.</p>
+            <a href="index.html" class="mt-6 inline-block bg-amber-500 text-white font-bold py-3 px-6 rounded-lg hover:bg-amber-600 transition-colors">
+                Start Shopping
+            </a>
+        </div>
+    </main>
+
+    <!-- Bottom Action Bar -->
+    <div id="bottom-bar" class="fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-800 p-3 shadow-[0_-2px_10px_rgba(0,0,0,0.1)] z-50">
+        <div class="container mx-auto flex items-center justify-between">
+            <div>
+                <p class="text-sm text-gray-500 dark:text-gray-400">Total Price</p>
+                <p id="total-price" class="text-2xl font-extrabold text-gray-900 dark:text-white">रू 0</p>
+            </div>
+            <button id="checkout-btn" onclick="location.href='checkout.html'" class="w-1/2 bg-gradient-to-r from-amber-500 to-orange-500 text-white font-bold py-3 px-4 rounded-lg hover:from-amber-600 hover:to-orange-600 transition duration-300 disabled:opacity-50 disabled:cursor-not-allowed">
+                Checkout
+            </button>
+        </div>
+    </div>
+    
+    <!-- Toast Notification -->
+    <div id="toast" class="toast fixed bottom-24 left-1/2 -translate-x-1/2 bg-gray-800 text-white px-4 py-2 rounded-lg shadow-lg opacity-0 transition-opacity duration-300 z-50"></div>
+
+<script>
+    // -------------------
+    //  SECURITY & CONFIG
+    // -------------------
+    document.addEventListener('contextmenu', event => event.preventDefault());
+    const firebaseConfig = {
+  apiKey: "AIzaSyBIwo7phmACkms_fjwfhEVJNgx5eiEQWBE",
+  authDomain: "atozmobialstores.firebaseapp.com",
+  projectId: "atozmobialstores",
+  storageBucket: "atozmobialstores.firebasestorage.app",
+  messagingSenderId: "879111411317",
+  appId: "1:879111411317:web:589d4b750cc113572a8a3c",
+  measurementId: "G-HDVSY5KYBK"
+};
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+
+    // -------------------
+    //  COMMON FUNCTIONS
+    // -------------------
+    function authGuard() {
+        auth.onAuthStateChanged(user => { if (!user) window.location.replace('login.html'); });
+    }
+    function showToast(message) {
+        const toast = document.getElementById('toast');
+        toast.textContent = message;
+        toast.style.opacity = '1';
+        setTimeout(() => { toast.style.opacity = '0'; }, 2000);
+    }
+
+    // -------------------
+    // PAGE LOGIC
+    // -------------------
+    document.addEventListener('DOMContentLoaded', () => {
+        authGuard();
+        renderCart();
+    });
+
+    function renderCart() {
+        const cart = JSON.parse(localStorage.getItem('cart')) || [];
+        const container = document.getElementById('cart-items-container');
+        const emptyMessage = document.getElementById('empty-cart-message');
+        const bottomBar = document.getElementById('bottom-bar');
+        const checkoutBtn = document.getElementById('checkout-btn');
+
+        container.innerHTML = ''; // Clear previous items
+
+        if (cart.length === 0) {
+            emptyMessage.classList.remove('hidden');
+            bottomBar.classList.add('hidden');
+            return;
+        }
+        
+        emptyMessage.classList.add('hidden');
+        bottomBar.classList.remove('hidden');
+
+        cart.forEach(item => {
+            const itemElement = document.createElement('div');
+            itemElement.className = 'cart-item-card flex items-center bg-white dark:bg-gray-800 p-3 rounded-lg shadow-sm';
+            itemElement.innerHTML = `
+                <img src="${item.image}" alt="${item.name}" class="w-20 h-20 object-cover rounded-md mr-4">
+                <div class="flex-grow">
+                    <h3 class="font-bold text-md text-gray-800 dark:text-white">${item.name}</h3>
+                    <p class="text-amber-600 font-semibold text-lg">रू ${item.price.toLocaleString()}</p>
+                    ${item.redeemCode ? `<p class="text-xs text-green-500">Discount Applied</p>` : ''}
+                </div>
+                <div class="flex flex-col items-end">
+                    <div class="flex items-center mb-2">
+                        <button onclick="updateQuantity('${item.id}', -1)" class="w-7 h-7 rounded-full border border-gray-300 dark:border-gray-600 text-lg font-bold flex items-center justify-center">-</button>
+                        <span class="w-10 text-center font-semibold">${item.quantity}</span>
+                        <button onclick="updateQuantity('${item.id}', 1)" class="w-7 h-7 rounded-full border border-gray-300 dark:border-gray-600 text-lg font-bold flex items-center justify-center">+</button>
+                    </div>
+                    <button onclick="removeItem('${item.id}')" class="text-red-500 hover:text-red-700 text-sm">
+                        <i class="fas fa-trash-alt mr-1"></i> Remove
+                    </button>
+                </div>
+            `;
+            container.appendChild(itemElement);
+        });
+        
+        calculateTotal();
+    }
+
+    function updateQuantity(itemId, change) {
+        let cart = JSON.parse(localStorage.getItem('cart')) || [];
+        const itemIndex = cart.findIndex(item => item.id === itemId);
+
+        if (itemIndex > -1) {
+            cart[itemIndex].quantity += change;
+            if (cart[itemIndex].quantity <= 0) {
+                cart.splice(itemIndex, 1); // Remove item if quantity is 0 or less
+                showToast("Item removed from cart.");
+            }
+            localStorage.setItem('cart', JSON.stringify(cart));
+            renderCart();
+        }
+    }
+
+    function removeItem(itemId) {
+        let cart = JSON.parse(localStorage.getItem('cart')) || [];
+        const updatedCart = cart.filter(item => item.id !== itemId);
+        localStorage.setItem('cart', JSON.stringify(updatedCart));
+        showToast("Item removed from cart.");
+        renderCart();
+    }
+
+    function calculateTotal() {
+        const cart = JSON.parse(localStorage.getItem('cart')) || [];
+        const total = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+        document.getElementById('total-price').textContent = `रू ${total.toLocaleString()}`;
+
+        const checkoutBtn = document.getElementById('checkout-btn');
+        checkoutBtn.disabled = cart.length === 0;
+    }
+</script>
+</body>
+</html>

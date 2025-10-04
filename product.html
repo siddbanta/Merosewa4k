@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Atoz Mobile - Products</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <!-- Firebase Libraries -->
+    <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore-compat.js"></script>
+    <style>
+        body { padding-bottom: 80px; } /* Bottom nav ke liye space */
+        .bottom-nav { box-shadow: 0 -2px 10px rgba(0,0,0,0.1); }
+        .nav-item.active i, .nav-item.active span { color: #f59e0b; } /* Active icon color */
+    </style>
+</head>
+<body class="bg-gray-50 dark:bg-gray-900">
+
+    <!-- Header -->
+    <header class="sticky top-0 z-40 bg-white dark:bg-gray-800 shadow-md p-4">
+        <div class="container mx-auto flex items-center">
+             <a href="category.html" class="text-gray-600 dark:text-gray-300 mr-4"><i class="fas fa-arrow-left"></i></a>
+            <h1 id="category-name-title" class="text-xl font-bold text-gray-800 dark:text-white">Products</h1>
+        </div>
+    </header>
+
+    <main class="container mx-auto p-4">
+        <!-- Sort Dropdown -->
+        <div class="mb-4">
+            <label for="sort-filter" class="sr-only">Sort by</label>
+            <select id="sort-filter" class="w-full bg-white dark:bg-gray-700 dark:text-white border border-gray-300 dark:border-gray-600 rounded-md shadow-sm p-2 focus:outline-none focus:ring-amber-500 focus:border-amber-500">
+                <option value="default" selected>Sort by: Default</option>
+                <option value="price_asc">Price: Low to High</option>
+                <option value="price_desc">Price: High to Low</option>
+                <option value="name_asc">Name: A-Z</option>
+            </select>
+        </div>
+
+        <!-- Product Grid -->
+        <div id="product-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+            <!-- Products yahan JavaScript se load honge -->
+        </div>
+    </main>
+    
+    <!-- Bottom Navigation -->
+    <nav class="fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-800 p-2 bottom-nav z-50">
+        <div class="flex justify-around">
+            <a href="index.html" class="nav-item flex flex-col items-center text-gray-500 dark:text-gray-400 w-1/4"><i class="fas fa-home text-xl"></i><span class="text-xs">Home</span></a>
+            <a href="category.html" class="nav-item active flex flex-col items-center text-gray-500 dark:text-gray-400 w-1/4"><i class="fas fa-th-large text-xl"></i><span class="text-xs">Categories</span></a>
+            <a href="order.html" class="nav-item flex flex-col items-center text-gray-500 dark:text-gray-400 w-1/4"><i class="fas fa-box text-xl"></i><span class="text-xs">Orders</span></a>
+            <a href="profile.html" class="nav-item flex flex-col items-center text-gray-500 dark:text-gray-400 w-1/4"><i class="fas fa-user text-xl"></i><span class="text-xs">Profile</span></a>
+        </div>
+    </nav>
+
+<script>
+    // -------------------
+    //  FIREBASE CONFIG
+    // -------------------
+    const firebaseConfig = {
+      apiKey: "AIzaSyBIwo7phmACkms_fjwfhEVJNgx5eiEQWBE",
+      authDomain: "atozmobialstores.firebaseapp.com",
+      projectId: "atozmobialstores",
+      storageBucket: "atozmobialstores.firebasestorage.app",
+      messagingSenderId: "879111411317",
+      appId: "1:879111411317:web:589d4b750cc113572a8a3c",
+      measurementId: "G-HDVSY5KYBK"
+    };
+
+    // Initialize Firebase
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+    
+    // Loading Animation ke liye HTML (Skeleton Loader)
+    const skeletonHTML = `${'<div class="bg-white dark:bg-gray-800 rounded-lg shadow-md animate-pulse"><div class="w-full h-32 bg-gray-200 dark:bg-gray-700 rounded-t-lg"></div><div class="p-3"><div class="h-4 w-3/4 bg-gray-200 dark:bg-gray-700 rounded mb-2"></div><div class="h-6 w-1/2 bg-gray-200 dark:bg-gray-700 rounded"></div></div></div>'.repeat(6)}`;
+
+    // Yeh array sabhi products ko store karega
+    let allProducts = [];
+
+    // -------------------
+    // PAGE LOGIC
+    // -------------------
+    document.addEventListener('DOMContentLoaded', () => {
+        const urlParams = new URLSearchParams(window.location.search);
+        const categoryId = urlParams.get('category');
+        const categoryName = urlParams.get('name');
+        
+        if (!categoryId) {
+            document.getElementById('product-grid').innerHTML = '<p class="text-red-500 col-span-full">Invalid category. URL mein category ID nahi mili.</p>';
+            return;
+        }
+
+        document.getElementById('category-name-title').textContent = categoryName || 'Products';
+        document.title = `Atoz Mobile - ${categoryName || 'Products'}`;
+        
+        // Products ko real-time mein fetch karein
+        fetchProductsRealtime(categoryId);
+        
+        // Sort dropdown par event listener lagayein
+        const sortFilter = document.getElementById('sort-filter');
+        sortFilter.addEventListener('change', () => {
+            // Data pehle se hai, bas usko sort karke dobara display karna hai
+            displayProducts(sortFilter.value);
+        });
+    });
+
+    // Function to fetch products in real-time using onSnapshot
+    function fetchProductsRealtime(categoryId) {
+        const productGrid = document.getElementById('product-grid');
+        productGrid.innerHTML = skeletonHTML; // Loading state dikhayein
+
+        const query = db.collection('products').where('categoryId', '==', categoryId);
+        
+        // .onSnapshot() real-time listener hai.
+        // Jab bhi database me change hoga, yeh code apne aap chalega.
+        query.onSnapshot(snapshot => {
+            if (snapshot.empty) {
+                // Agar koi product nahi mila
+                productGrid.innerHTML = `<p class="text-gray-500 col-span-full text-center">No products found in this category.</p>`;
+                allProducts = []; // Product array ko khali kar dein
+                return;
+            }
+
+            // Global array ko har update par khali karein aur naye data se bharein
+            allProducts = [];
+            snapshot.forEach(doc => {
+                allProducts.push(doc.data());
+            });
+
+            // Products ko display karein, current sorting option ke hisab se
+            const currentSortBy = document.getElementById('sort-filter').value;
+            displayProducts(currentSortBy);
+
+        }, error => {
+            // Agar koi error aaye (jaise permission denied) to dikhayein
+            console.error("Error fetching real-time products: ", error);
+            productGrid.innerHTML = '<p class="text-red-500 col-span-full text-center">Products load nahi ho paaye. Security rules check karein ya baad mein try karein.</p>';
+        });
+    }
+
+    // Function to display products on the screen
+    function displayProducts(sortBy = 'default') {
+        const productGrid = document.getElementById('product-grid');
+        
+        // Sort karne ke liye array ki copy banayein
+        let sortedProducts = [...allProducts];
+
+        // JavaScript se products ko sort karein
+        switch (sortBy) {
+            case 'price_asc':
+                sortedProducts.sort((a, b) => a.price - b.price);
+                break;
+            case 'price_desc':
+                sortedProducts.sort((a, b) => b.price - a.price);
+                break;
+            case 'name_asc':
+                sortedProducts.sort((a, b) => a.name.localeCompare(b.name));
+                break;
+            // 'default' me kuch karne ki zarurat nahi, wo fetched order me rahega
+        }
+        
+        // Products ko display karne ke liye HTML banayein
+        let html = '';
+        if (sortedProducts.length === 0) {
+            productGrid.innerHTML = `<p class="text-gray-500 col-span-full text-center">No products found.</p>`;
+            return;
+        }
+        
+        sortedProducts.forEach(product => {
+            html += `
+                <div class="flex flex-col bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden">
+                    <img src="${product.image}" alt="${product.name}" class="w-full h-40 object-cover">
+                    <div class="p-3 flex-grow flex flex-col">
+                        <h3 class="text-md font-semibold text-gray-800 dark:text-white flex-grow">${product.name}</h3>
+                        <p class="text-lg font-bold text-green-600 dark:text-green-400 mt-2">₹${product.price}</p>
+                    </div>
+                </div>
+            `;
+        });
+        // Final HTML ko grid mein daal dein
+        productGrid.innerHTML = html;
+    }
+</script>
+</body>
+</html>
